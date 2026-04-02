@@ -129,7 +129,7 @@ const UploadFood = () => {
       submitData.append('pickupLocation', JSON.stringify(formData.pickupLocation));
       submitData.append('hygieneChecklist', JSON.stringify(formData.hygieneChecklist));
 
-      const response = await api.post('/posts', submitData, {
+      await api.post('/posts', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

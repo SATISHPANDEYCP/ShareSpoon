@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FiMapPin, FiClock, FiUser, FiHeart } from 'react-icons/fi';
-import { formatRelativeTime, getTimeUntilExpiry } from '../utils/dateUtils';
+import { getTimeUntilExpiry } from '../utils/dateUtils';
 import { calculateDistance, formatDistance } from '../utils/locationUtils';
 import useAuthStore from '../store/authStore';
 

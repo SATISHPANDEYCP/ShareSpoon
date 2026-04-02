@@ -18,7 +18,7 @@ const RequestModal = ({ post, isOpen, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await api.post(`/requests/${post._id}`, {
+      await api.post(`/requests/${post._id}`, {
         message,
         pickupTime: pickupTime || undefined,
       });

@@ -123,7 +123,7 @@ const Login = () => {
             {/* Divider */}
             <div className="text-center">
               <p className="text-gray-600 dark:text-gray-400">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link
                   to="/register"
                   className="text-primary-600 hover:text-primary-700 font-medium"
@@ -135,15 +135,10 @@ const Login = () => {
           </form>
         </div>
 
-        {/* Demo Credentials */}
         <div className="mt-6 card p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-            Demo Credentials:
-          </h3>
-          <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-            <p><strong>Admin:</strong> admin@foodshare.com / admin123</p>
-            <p><strong>User:</strong> john@example.com / password123</p>
-          </div>
+          <p className="text-xs text-blue-800 dark:text-blue-200">
+            Only verified users can login. Admin login uses credentials configured in backend environment variables.
+          </p>
         </div>
       </div>
     </div>

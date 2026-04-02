@@ -51,21 +51,48 @@ const useAuthStore = create(
         set({ loading: true, error: null });
         try {
           const response = await api.post('/auth/register', userData);
-          const { token, user } = response.data;
 
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            loading: false,
-          });
-
-          // Initialize socket
-          initializeSocket(user._id);
-
-          return { success: true };
+          set({ loading: false });
+          return {
+            success: true,
+            requiresEmailVerification: response.data.requiresEmailVerification,
+            email: response.data.email,
+            message: response.data.message,
+          };
         } catch (error) {
           const message = error.response?.data?.message || 'Registration failed';
+          set({ loading: false, error: message });
+          return { success: false, error: message };
+        }
+      },
+
+      /**
+       * Verify signup OTP
+       */
+      verifyOtp: async (email, otp) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await api.post('/auth/verify-otp', { email, otp });
+          set({ loading: false });
+          return { success: true, message: response.data.message };
+        } catch (error) {
+          const message = error.response?.data?.message || 'OTP verification failed';
+          set({ loading: false, error: message });
+          return { success: false, error: message };
+        }
+      },
+
+      /**
+       * Resend signup OTP
+       */
+      resendOtp: async (email) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await api.post('/auth/resend-otp', { email });
+          set({ loading: false });
+          return { success: true, message: response.data.message };
+        } catch (error) {
+          const message = error.response?.data?.message || 'Failed to resend OTP';
           set({ loading: false, error: message });
           return { success: false, error: message };
         }

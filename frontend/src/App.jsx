@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 
 // Store
 import useAuthStore from './store/authStore';
@@ -9,11 +9,18 @@ import useAuthStore from './store/authStore';
 import Navbar from './components/Navbar';
 import PrivateRoute, { AdminRoute } from './components/PrivateRoute';
 
-// Pages
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import UploadFood from './pages/UploadFood';
+// Pages (lazy loaded for better code splitting)
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const UploadFood = lazy(() => import('./pages/UploadFood'));
+const NearbyFood = lazy(() => import('./pages/NearbyFood'));
+const MyRequests = lazy(() => import('./pages/MyRequests'));
+const Profile = lazy(() => import('./pages/Profile'));
+const PostDetails = lazy(() => import('./pages/PostDetails'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const Settings = lazy(() => import('./pages/Settings'));
+const UserProfile = lazy(() => import('./pages/UserProfile'));
 
 // Socket connection
 import { initializeSocket } from './utils/socket';
@@ -66,7 +73,14 @@ function App() {
         <Navbar />
 
         {/* Routes */}
-        <Routes>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          }
+        >
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -90,14 +104,11 @@ function App() {
             }
           />
 
-          {/* Placeholder routes - implement remaining pages similarly */}
           <Route
             path="/nearby"
             element={
               <PrivateRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Nearby Food - Coming Soon</h1>
-                </div>
+                <NearbyFood />
               </PrivateRoute>
             }
           />
@@ -106,9 +117,7 @@ function App() {
             path="/requests"
             element={
               <PrivateRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">My Requests - Coming Soon</h1>
-                </div>
+                <MyRequests />
               </PrivateRoute>
             }
           />
@@ -117,9 +126,16 @@ function App() {
             path="/profile"
             element={
               <PrivateRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Profile - Coming Soon</h1>
-                </div>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <Settings />
               </PrivateRoute>
             }
           />
@@ -128,9 +144,16 @@ function App() {
             path="/post/:id"
             element={
               <PrivateRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Post Details - Coming Soon</h1>
-                </div>
+                <PostDetails />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/:id"
+            element={
+              <PrivateRoute>
+                <UserProfile />
               </PrivateRoute>
             }
           />
@@ -139,9 +162,7 @@ function App() {
             path="/admin"
             element={
               <AdminRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Admin Panel - Coming Soon</h1>
-                </div>
+                <AdminPanel />
               </AdminRoute>
             }
           />
@@ -162,7 +183,8 @@ function App() {
               </div>
             }
           />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
     </Router>
   );

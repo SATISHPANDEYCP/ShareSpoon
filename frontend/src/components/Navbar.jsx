@@ -184,6 +184,24 @@ const Navbar = () => {
                   <FiUser className="w-5 h-5" />
                   <span>Profile</span>
                 </Link>
+                <Link
+                  to="/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <FiSettings className="w-5 h-5" />
+                  <span>Settings</span>
+                </Link>
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600"
+                  >
+                    <FiShield className="w-5 h-5" />
+                    <span>Admin Panel</span>
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     handleLogout();

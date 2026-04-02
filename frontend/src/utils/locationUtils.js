@@ -81,7 +81,12 @@ export const getCurrentLocation = () => {
  */
 export const getAddressFromCoordinates = async (lat, lng) => {
   try {
-    const geocoder = new google.maps.Geocoder();
+    const googleMaps = window.google;
+    if (!googleMaps || !googleMaps.maps) {
+      return 'Unknown location';
+    }
+
+    const geocoder = new googleMaps.maps.Geocoder();
     const result = await geocoder.geocode({
       location: { lat, lng },
     });

@@ -104,6 +104,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    emailVerificationOtp: {
+      type: String,
+      select: false
+    },
+    emailVerificationOtpExpiry: {
+      type: Date,
+      select: false
+    },
     phoneVerified: {
       type: Boolean,
       default: false
