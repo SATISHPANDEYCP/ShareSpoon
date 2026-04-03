@@ -8,9 +8,15 @@ import { cloudinary } from '../config/cloudinary.js';
  */
 export const uploadToCloudinary = (fileBuffer, folder = 'food-sharing') => {
   return new Promise((resolve, reject) => {
+    const normalizedFolder = String(folder || 'food-sharing').replace(/^\/+|\/+$/g, '');
+    const uniquePublicId = `${normalizedFolder}/${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: folder,
+        folder: normalizedFolder,
+        asset_folder: normalizedFolder,
+        public_id: uniquePublicId,
+        overwrite: false,
         resource_type: 'auto',
         transformation: [
           { width: 1000, height: 1000, crop: 'limit' },

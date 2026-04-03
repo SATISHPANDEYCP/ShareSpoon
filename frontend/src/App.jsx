@@ -131,6 +131,12 @@ function App() {
       });
     };
 
+    offSocketEvent('newRequest');
+    offSocketEvent('requestAccepted');
+    offSocketEvent('requestRejected');
+    offSocketEvent('requestCancelled');
+    offSocketEvent('pickupConfirmed');
+
     onSocketEvent('newRequest', handleNewRequest);
     onSocketEvent('requestAccepted', handleRequestAccepted);
     onSocketEvent('requestRejected', handleRequestRejected);

@@ -63,3 +63,28 @@ export const sanitizeInput = (input) => {
     .replace(/'/g, '&#x27;')
     .replace(/\//g, '&#x2F;');
 };
+
+/**
+ * Validate quantity unit text.
+ * Requires at least one alphabetic character and max length 30.
+ * @param {string} unit - Unit label to validate
+ * @returns {boolean} True if valid
+ */
+export const isValidQuantityUnit = (unit) => {
+  const normalized = String(unit || '').trim();
+  return normalized.length > 0 && normalized.length <= 30 && /[A-Za-z]/.test(normalized);
+};
+
+/**
+ * Normalize quantity unit for safe display.
+ * Falls back to "units" for invalid values.
+ * @param {string} unit - Unit label
+ * @returns {string} Safe unit label
+ */
+export const normalizeQuantityUnit = (unit) => {
+  const normalized = String(unit || '').trim();
+  if (isValidQuantityUnit(normalized)) {
+    return normalized;
+  }
+  return 'units';
+};

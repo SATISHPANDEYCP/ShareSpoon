@@ -5,6 +5,7 @@ import api from '../utils/api';
 import Loader from '../components/Loader';
 import { formatDate } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
+import UserAvatar from '../components/UserAvatar';
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -54,11 +55,7 @@ const UserProfile = () => {
 
         <div className="card p-6">
           <div className="flex items-center gap-4">
-            <img
-              src={user.avatar || 'https://via.placeholder.com/80'}
-              alt={user.name}
-              className="w-16 h-16 rounded-full object-cover"
-            />
+            <UserAvatar src={user.avatar} name={user.name} sizeClass="w-16 h-16" textClass="text-xl" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">Member since {formatDate(user.createdAt)}</p>
@@ -100,7 +97,15 @@ const UserProfile = () => {
             <div className="space-y-3">
               {reviews.map((review) => (
                 <div key={review._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{review.reviewer?.name || 'Anonymous'}</p>
+                  <div className="flex items-center gap-2">
+                    <UserAvatar
+                      src={review.reviewer?.avatar}
+                      name={review.reviewer?.name || 'Anonymous'}
+                      sizeClass="w-8 h-8"
+                      textClass="text-sm"
+                    />
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{review.reviewer?.name || 'Anonymous'}</p>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{review.comment || 'No comment'}</p>
                 </div>
               ))}

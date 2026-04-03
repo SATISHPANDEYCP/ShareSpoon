@@ -103,3 +103,129 @@ export const sendPickupRatingReminderEmail = async ({
     html,
   });
 };
+
+export const sendNewRequestAlertEmail = async ({
+  to,
+  donorName,
+  requesterName,
+  postTitle,
+  requestId,
+}) => {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const reviewUrl = `${baseUrl}/requests?tab=received&rateRequest=${requestId}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">New request on your food post</h2>
+      <p>Hi ${donorName || 'there'},</p>
+      <p><strong>${requesterName || 'Someone'}</strong> requested your post <strong>${postTitle || 'Food post'}</strong>.</p>
+      <p>Please review this request and accept/reject from your dashboard.</p>
+      <p style="margin: 20px 0;">
+        <a href="${reviewUrl}" style="background: #16a34a; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+          Review request
+        </a>
+      </p>
+      <p style="font-size: 12px; color: #6b7280;">If the button does not work, copy this link: ${reviewUrl}</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'New food request on Share Spoon',
+    html,
+  });
+};
+
+export const sendRequestAcceptedEmail = async ({
+  to,
+  requesterName,
+  donorName,
+  postTitle,
+  approvedQuantity,
+  quantityUnit,
+}) => {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const statusUrl = `${baseUrl}/requests?tab=sent`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">Your request was accepted</h2>
+      <p>Hi ${requesterName || 'there'},</p>
+      <p>Your request for <strong>${postTitle || 'a food post'}</strong> has been accepted by <strong>${donorName || 'the donor'}</strong>.</p>
+      <p>Approved quantity: <strong>${approvedQuantity} ${quantityUnit || 'units'}</strong></p>
+      <p>Please coordinate pickup from your My Requests page.</p>
+      <p style="margin: 20px 0;">
+        <a href="${statusUrl}" style="background: #16a34a; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+          View my requests
+        </a>
+      </p>
+      <p style="font-size: 12px; color: #6b7280;">If the button does not work, copy this link: ${statusUrl}</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Your Share Spoon request was accepted',
+    html,
+  });
+};
+
+export const sendPickupConfirmationOtpEmail = async ({
+  to,
+  requesterName,
+  donorName,
+  postTitle,
+  otp,
+}) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">Pickup confirmation OTP</h2>
+      <p>Hi ${requesterName || 'there'},</p>
+      <p>Your pickup for <strong>${postTitle || 'food request'}</strong> with donor <strong>${donorName || 'the donor'}</strong> is being confirmed.</p>
+      <p>Share this OTP with the person confirming pickup:</p>
+      <div style="font-size: 28px; letter-spacing: 6px; font-weight: 700; color: #111827; margin: 16px 0;">
+        ${otp}
+      </div>
+      <p>This OTP will expire in 10 minutes.</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Your Share Spoon pickup OTP',
+    html,
+  });
+};
+
+export const sendRequestRejectedEmail = async ({
+  to,
+  requesterName,
+  donorName,
+  postTitle,
+  reason,
+}) => {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const requestsUrl = `${baseUrl}/requests?tab=sent`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #b91c1c;">Your request was not accepted</h2>
+      <p>Hi ${requesterName || 'there'},</p>
+      <p>Your request for <strong>${postTitle || 'a food post'}</strong> was not accepted by <strong>${donorName || 'the donor'}</strong>.</p>
+      ${reason ? `<p>Reason: <strong>${reason}</strong></p>` : ''}
+      <p>You can check your requests page for updates or request another available post.</p>
+      <p style="margin: 20px 0;">
+        <a href="${requestsUrl}" style="background: #dc2626; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+          View my requests
+        </a>
+      </p>
+      <p style="font-size: 12px; color: #6b7280;">If the button does not work, copy this link: ${requestsUrl}</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Your Share Spoon request was rejected',
+    html,
+  });
+};

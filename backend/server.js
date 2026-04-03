@@ -11,6 +11,8 @@ dotenv.config();
 // Import configurations
 import connectDB from './config/db.js';
 import configureCloudinary from './config/cloudinary.js';
+import { startMediaCleanupJob } from './services/mediaCleanupService.js';
+import { startRatingReminderJob } from './services/ratingReminderService.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -41,6 +43,12 @@ connectDB();
 
 // Configure Cloudinary
 configureCloudinary();
+
+// Start media cleanup background job
+startMediaCleanupJob();
+
+// Start delayed rating reminder background job
+startRatingReminderJob();
 
 // Middleware
 app.use(cors({

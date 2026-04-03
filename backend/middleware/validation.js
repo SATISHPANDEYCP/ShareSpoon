@@ -120,6 +120,25 @@ export const createPostValidation = [
   body('quantity')
     .trim()
     .notEmpty().withMessage('Quantity is required'),
+
+  body('totalQuantity')
+    .notEmpty().withMessage('Total quantity is required')
+    .isInt({ min: 1 }).withMessage('Total quantity must be at least 1'),
+
+  body('quantityUnit')
+    .trim()
+    .notEmpty().withMessage('Quantity unit is required')
+    .isLength({ max: 30 }).withMessage('Quantity unit cannot exceed 30 characters')
+    .custom((value) => {
+      if (!/[A-Za-z]/.test(String(value || '').trim())) {
+        throw new Error('Quantity unit must contain letters, e.g. plates, boxes, kg');
+      }
+      return true;
+    }),
+
+  body('servingsPerUnit')
+    .notEmpty().withMessage('Servings per unit is required')
+    .isInt({ min: 1 }).withMessage('Servings per unit must be at least 1'),
   
   body('expiryTime')
     .notEmpty().withMessage('Expiry time is required')
@@ -168,6 +187,10 @@ export const createPostValidation = [
  * Request validation rules
  */
 export const createRequestValidation = [
+  body('requestedQuantity')
+    .notEmpty().withMessage('Requested quantity is required')
+    .isInt({ min: 1 }).withMessage('Requested quantity must be at least 1'),
+
   body('message')
     .optional()
     .trim()

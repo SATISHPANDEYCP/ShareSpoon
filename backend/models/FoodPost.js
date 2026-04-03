@@ -43,6 +43,26 @@ const foodPostSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please specify quantity']
     },
+    totalQuantity: {
+      type: Number,
+      min: [1, 'Total quantity must be at least 1'],
+      default: 1
+    },
+    availableQuantity: {
+      type: Number,
+      min: [0, 'Available quantity cannot be negative'],
+      default: 1
+    },
+    quantityUnit: {
+      type: String,
+      trim: true,
+      default: 'servings'
+    },
+    servingsPerUnit: {
+      type: Number,
+      min: [1, 'Servings per unit must be at least 1'],
+      default: 1
+    },
     
     // Timing
     expiryTime: {
@@ -132,10 +152,16 @@ const foodPostSchema = new mongoose.Schema(
     
     // Completion
     completedAt: Date,
+    expiredAt: Date,
     pickupConfirmed: {
       type: Boolean,
       default: false
     },
+    mediaCleaned: {
+      type: Boolean,
+      default: false
+    },
+    mediaCleanedAt: Date,
     
     // Moderation
     isReported: {

@@ -58,6 +58,7 @@ export const disconnectSocket = () => {
  */
 export const onSocketEvent = (event, callback) => {
   if (socket) {
+    socket.off(event, callback);
     socket.on(event, callback);
   }
 };
@@ -67,7 +68,11 @@ export const onSocketEvent = (event, callback) => {
  */
 export const offSocketEvent = (event, callback) => {
   if (socket) {
-    socket.off(event, callback);
+    if (callback) {
+      socket.off(event, callback);
+    } else {
+      socket.off(event);
+    }
   }
 };
 

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUpload, FiX } from 'react-icons/fi';
 import api from '../utils/api';
 import MapPicker from '../components/MapPicker';
 import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
+import { isValidQuantityUnit } from '../utils/validation';
 
 const foodTypes = [
   'Cooked Meal',
@@ -16,6 +17,28 @@ const foodTypes = [
   'Packaged Food',
   'Other',
 ];
+
+const DONATE_FORM_STORAGE_KEY = 'sharespoon-donate-form-v1';
+
+const INITIAL_FORM_DATA = {
+  title: '',
+  description: '',
+  foodType: 'Cooked Meal',
+  totalQuantity: '',
+  quantityUnit: '',
+  servingsPerUnit: '',
+  expiryTime: '',
+  pickupTimeStart: '',
+  pickupTimeEnd: '',
+  pickupLocation: null,
+  allergenInfo: '',
+  hygieneChecklist: {
+    freshFood: false,
+    properStorage: false,
+    allergenFree: false,
+    noContamination: false,
+  },
+};
 
 const getLocalDateTimeInputValue = (date = new Date()) => {
   const tzOffsetMs = date.getTimezoneOffset() * 60000;
@@ -32,23 +55,28 @@ const UploadFood = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const minDateTime = getLocalDateTimeInputValue();
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    foodType: 'Cooked Meal',
-    quantity: '',
-    expiryTime: '',
-    pickupTimeStart: '',
-    pickupTimeEnd: '',
-    pickupLocation: null,
-    allergenInfo: '',
-    hygieneChecklist: {
-      freshFood: false,
-      properStorage: false,
-      allergenFree: false,
-      noContamination: false,
-    },
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(DONATE_FORM_STORAGE_KEY);
+      if (!saved) return INITIAL_FORM_DATA;
+
+      const parsed = JSON.parse(saved);
+      return {
+        ...INITIAL_FORM_DATA,
+        ...parsed,
+        hygieneChecklist: {
+          ...INITIAL_FORM_DATA.hygieneChecklist,
+          ...(parsed?.hygieneChecklist || {}),
+        },
+      };
+    } catch {
+      return INITIAL_FORM_DATA;
+    }
   });
+
+  useEffect(() => {
+    localStorage.setItem(DONATE_FORM_STORAGE_KEY, JSON.stringify(formData));
+  }, [formData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -112,6 +140,11 @@ const UploadFood = () => {
       return;
     }
 
+    if (!isValidQuantityUnit(formData.quantityUnit)) {
+      toast.error('Unit must contain letters, e.g. plates, boxes, kg');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -127,7 +160,10 @@ const UploadFood = () => {
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
       submitData.append('foodType', formData.foodType);
-      submitData.append('quantity', formData.quantity);
+      submitData.append('totalQuantity', String(formData.totalQuantity));
+      submitData.append('quantityUnit', formData.quantityUnit);
+      submitData.append('servingsPerUnit', String(formData.servingsPerUnit));
+      submitData.append('quantity', `${formData.totalQuantity} ${formData.quantityUnit}`);
       submitData.append('expiryTime', formData.expiryTime);
       submitData.append('pickupTimeStart', formData.pickupTimeStart);
       submitData.append('pickupTimeEnd', formData.pickupTimeEnd);
@@ -142,6 +178,8 @@ const UploadFood = () => {
       });
 
       toast.success('Food post created successfully!');
+      localStorage.removeItem(DONATE_FORM_STORAGE_KEY);
+      setFormData(INITIAL_FORM_DATA);
       navigate('/');
     } catch (error) {
       console.error('Upload error:', error);
@@ -204,7 +242,7 @@ const UploadFood = () => {
           </div>
 
           {/* Food Type and Quantity */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="label">Food Type *</label>
               <select
@@ -223,18 +261,50 @@ const UploadFood = () => {
             </div>
 
             <div>
-              <label className="label">Quantity *</label>
+              <label className="label">Total Quantity *</label>
               <input
-                type="text"
-                name="quantity"
-                value={formData.quantity}
+                type="number"
+                name="totalQuantity"
+                value={formData.totalQuantity}
                 onChange={handleChange}
                 required
+                min={1}
                 className="input"
-                placeholder="e.g., 2 large pizzas, 5 lbs"
+                placeholder="e.g., 10"
+              />
+            </div>
+
+            <div>
+              <label className="label">Unit *</label>
+              <input
+                type="text"
+                name="quantityUnit"
+                value={formData.quantityUnit}
+                onChange={handleChange}
+                required
+                maxLength={30}
+                className="input"
+                placeholder="e.g., plates, boxes, kg"
+              />
+            </div>
+
+            <div>
+              <label className="label">Servings per Unit *</label>
+              <input
+                type="number"
+                name="servingsPerUnit"
+                value={formData.servingsPerUnit}
+                onChange={handleChange}
+                required
+                min={1}
+                className="input"
+                placeholder="e.g., 3"
               />
             </div>
           </div>
+          <p className="text-xs text-gray-500 -mt-3">
+            Example: 10 boxes, and each box serves 3 people.
+          </p>
 
           {/* Expiry Time */}
           <div>
@@ -280,6 +350,11 @@ const UploadFood = () => {
           {/* Images */}
           <div>
             <label className="label">Food Images * (Max 5)</label>
+            {images.length > 0 && (
+              <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+                Note: If you refresh this page, selected images need to be added again.
+              </p>
+            )}
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
               <input
                 type="file"

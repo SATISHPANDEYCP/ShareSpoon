@@ -2,6 +2,8 @@ import FoodPost from '../models/FoodPost.js';
 import Request from '../models/Request.js';
 import { uploadMultipleToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUtils.js';
 
+const DONATE_POSTS_FOLDER = 'sharespoon/donate-posts';
+
 /**
  * @desc    Create a new food post
  * @route   POST /api/posts
@@ -14,6 +16,9 @@ export const createPost = async (req, res) => {
       description,
       foodType,
       quantity,
+      totalQuantity,
+      quantityUnit,
+      servingsPerUnit,
       expiryTime,
       pickupTimeStart,
       pickupTimeEnd,
@@ -31,12 +36,23 @@ export const createPost = async (req, res) => {
       ? JSON.parse(hygieneChecklist)
       : hygieneChecklist;
 
+    const parsedTotalQuantity = Number(totalQuantity);
+    const normalizedTotalQuantity = Number.isFinite(parsedTotalQuantity) && parsedTotalQuantity > 0
+      ? Math.floor(parsedTotalQuantity)
+      : 1;
+    const parsedServingsPerUnit = Number(servingsPerUnit);
+    const normalizedServingsPerUnit = Number.isFinite(parsedServingsPerUnit) && parsedServingsPerUnit > 0
+      ? Math.floor(parsedServingsPerUnit)
+      : 1;
+    const normalizedQuantityUnit = (quantityUnit || 'servings').trim();
+    const normalizedQuantityText = quantity || `${normalizedTotalQuantity} ${normalizedQuantityUnit}`;
+
     // Handle image uploads
     let images = [];
     if (req.files && req.files.length > 0) {
       const uploadResults = await uploadMultipleToCloudinary(
         req.files,
-        'food-sharing/posts'
+        DONATE_POSTS_FOLDER
       );
       images = uploadResults.map(result => ({
         url: result.url,
@@ -50,7 +66,11 @@ export const createPost = async (req, res) => {
       title,
       description,
       foodType,
-      quantity,
+      quantity: normalizedQuantityText,
+      totalQuantity: normalizedTotalQuantity,
+      availableQuantity: normalizedTotalQuantity,
+      quantityUnit: normalizedQuantityUnit,
+      servingsPerUnit: normalizedServingsPerUnit,
       expiryTime,
       pickupTimeStart,
       pickupTimeEnd,
@@ -158,6 +178,10 @@ export const getPosts = async (req, res) => {
             description: 1,
             foodType: 1,
             quantity: 1,
+            totalQuantity: 1,
+            availableQuantity: 1,
+            quantityUnit: 1,
+            servingsPerUnit: 1,
             expiryTime: 1,
             pickupTimeStart: 1,
             pickupTimeEnd: 1,
@@ -173,7 +197,8 @@ export const getPosts = async (req, res) => {
             'donor._id': 1,
             'donor.name': 1,
             'donor.avatar': 1,
-            'donor.rating': 1
+            'donor.rating': 1,
+            'donor.totalReviews': 1
           }
         },
         { $sort: { distance: 1 } },
@@ -205,7 +230,7 @@ export const getPosts = async (req, res) => {
     } else {
       // Regular query without location
       posts = await FoodPost.find(query)
-        .populate('donor', 'name avatar rating')
+        .populate('donor', 'name avatar rating totalReviews')
         .sort('-createdAt')
         .skip(skip)
         .limit(limitNum);
@@ -239,7 +264,7 @@ export const getPosts = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const post = await FoodPost.findById(req.params.id)
-      .populate('donor', 'name avatar rating phone email')
+      .populate('donor', 'name avatar rating totalReviews phone email')
       .populate('receiver', 'name avatar')
       .populate({
         path: 'activeRequests',
@@ -295,11 +320,26 @@ export const updatePost = async (req, res) => {
       });
     }
 
+    if (req.body.quantityUnit !== undefined) {
+      const trimmedQuantityUnit = String(req.body.quantityUnit || '').trim();
+      if (!trimmedQuantityUnit || !/[A-Za-z]/.test(trimmedQuantityUnit)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Quantity unit must contain letters, e.g. plates, boxes, kg'
+        });
+      }
+    }
+
     // Update fields
     const allowedUpdates = [
       'title',
       'description',
+      'foodType',
       'quantity',
+      'totalQuantity',
+      'availableQuantity',
+      'quantityUnit',
+      'servingsPerUnit',
       'expiryTime',
       'pickupTimeStart',
       'pickupTimeEnd',
@@ -312,6 +352,34 @@ export const updatePost = async (req, res) => {
         post[field] = req.body[field];
       }
     });
+
+    // Normalize editable quantity fields.
+    const parsedTotalQuantity = Number(post.totalQuantity);
+    if (Number.isFinite(parsedTotalQuantity) && parsedTotalQuantity > 0) {
+      post.totalQuantity = Math.floor(parsedTotalQuantity);
+    }
+
+    const parsedAvailableQuantity = Number(post.availableQuantity);
+    if (Number.isFinite(parsedAvailableQuantity) && parsedAvailableQuantity >= 0) {
+      post.availableQuantity = Math.floor(parsedAvailableQuantity);
+    }
+
+    const parsedServingsPerUnit = Number(post.servingsPerUnit);
+    if (Number.isFinite(parsedServingsPerUnit) && parsedServingsPerUnit > 0) {
+      post.servingsPerUnit = Math.floor(parsedServingsPerUnit);
+    }
+
+    if (post.totalQuantity && post.availableQuantity > post.totalQuantity) {
+      post.availableQuantity = post.totalQuantity;
+    }
+
+    if (req.body.quantityUnit !== undefined) {
+      post.quantityUnit = String(req.body.quantityUnit || '').trim();
+    }
+
+    if (post.totalQuantity && post.quantityUnit) {
+      post.quantity = `${post.availableQuantity}/${post.totalQuantity} ${post.quantityUnit} available`;
+    }
 
     await post.save();
 
@@ -430,6 +498,9 @@ export const expirePost = async (req, res) => {
     }
 
     post.status = 'expired';
+    post.expiredAt = new Date();
+    post.mediaCleaned = false;
+    post.mediaCleanedAt = null;
     await post.save();
 
     res.status(200).json({
@@ -442,6 +513,66 @@ export const expirePost = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error expiring post',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Revert expired post back to active state
+ * @route   PUT /api/posts/:id/unexpire
+ * @access  Private (Owner only)
+ */
+export const unexpirePost = async (req, res) => {
+  try {
+    const post = await FoodPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Food post not found'
+      });
+    }
+
+    if (post.donor.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to revert this post'
+      });
+    }
+
+    if (post.status !== 'expired') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only expired posts can be reverted'
+      });
+    }
+
+    if (post.mediaCleaned) {
+      return res.status(400).json({
+        success: false,
+        message: 'This expired post cannot be reverted because its media has already been cleaned up'
+      });
+    }
+
+    const availableFromField = Number(post.availableQuantity);
+    const fallbackAvailable = Number((post.quantity || '').match(/\d+/)?.[0] || 0);
+    const availableQuantity = Number.isFinite(availableFromField) ? availableFromField : fallbackAvailable;
+
+    post.status = availableQuantity > 0 ? 'available' : 'reserved';
+    post.expiredAt = null;
+    await post.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Post restored successfully',
+      post
+    });
+  } catch (error) {
+    console.error('Unexpire post error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error restoring post',
       error: error.message
     });
   }

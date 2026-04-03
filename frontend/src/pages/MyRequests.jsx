@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { FiCheck, FiClock, FiEdit2, FiRefreshCw, FiTrash2, FiX } from 'react-icons/fi';
 import api from '../utils/api';
 import Loader from '../components/Loader';
+import UserAvatar from '../components/UserAvatar';
 import { formatDateTime, formatRelativeTime } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
+import { normalizeQuantityUnit } from '../utils/validation';
 
 const statusClasses = {
   pending: 'badge-warning',
@@ -28,20 +30,49 @@ const RequestCard = ({
   ratingLoadingId,
   showRatingForm,
 }) => {
+  const maxApprovableQuantity = Math.max(1, Number.parseInt(String(request.requestedQuantity || 1), 10) || 1);
+  const [approveQuantityInput, setApproveQuantityInput] = useState('1');
   const statusClass = statusClasses[request.status] || 'badge';
   const title = request.post?.title || 'Food Post';
+  const servingsPerUnit = Number(request.post?.servingsPerUnit || 0);
+  const quantityUnit = normalizeQuantityUnit(request.post?.quantityUnit || 'servings');
+  const requestedServingEstimate = servingsPerUnit > 0
+    ? (request.requestedQuantity || 0) * servingsPerUnit
+    : null;
+  const approvedServingEstimate = servingsPerUnit > 0 && request.approvedQuantity
+    ? request.approvedQuantity * servingsPerUnit
+    : null;
   const isCompleted = request.status === 'completed';
   const canRateThisRequest = isCompleted && (type === 'sent' || type === 'received');
   const ratingTargetLabel = type === 'sent' ? 'Rate Donor' : 'Rate Requester';
+  const profileUser = type === 'sent' ? request.donor : request.requester;
+  const profileLabel = type === 'sent' ? 'Donor' : 'Requester';
+
+  useEffect(() => {
+    setApproveQuantityInput('1');
+  }, [request._id, request.requestedQuantity]);
+
+  const normalizedApproveQuantity = Math.min(
+    Math.max(1, Number.parseInt(approveQuantityInput || '1', 10) || 1),
+    maxApprovableQuantity
+  );
 
   return (
     <div className="card p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
+        <div className="flex items-start gap-3">
+          <UserAvatar
+            src={profileUser?.avatar}
+            name={profileUser?.name || 'Unknown'}
+            sizeClass="w-10 h-10"
+            textClass="text-sm"
+          />
+          <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {type === 'sent' ? `Donor: ${request.donor?.name || 'Unknown'}` : `Requester: ${request.requester?.name || 'Unknown'}`}
+            {profileLabel}: {profileUser?.name || 'Unknown'}
           </p>
+          </div>
         </div>
         <span className={statusClass}>{request.status}</span>
       </div>
@@ -61,12 +92,56 @@ const RequestCard = ({
             Response: <span className="text-gray-900 dark:text-gray-200">{request.responseMessage}</span>
           </p>
         )}
+        <p>
+          Requested: <span className="text-gray-900 dark:text-gray-200">{request.requestedQuantity || 1} {quantityUnit}</span>
+        </p>
+        {requestedServingEstimate !== null && (
+          <p>
+            Requested servings: <span className="text-gray-900 dark:text-gray-200">~{requestedServingEstimate}</span>
+          </p>
+        )}
+        {request.approvedQuantity && (
+          <p>
+            Approved: <span className="text-gray-900 dark:text-gray-200">{request.approvedQuantity} {quantityUnit}</span>
+          </p>
+        )}
+        {approvedServingEstimate !== null && (
+          <p>
+            Approved servings: <span className="text-gray-900 dark:text-gray-200">~{approvedServingEstimate}</span>
+          </p>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {type === 'received' && request.status === 'pending' && (
           <>
-            <button onClick={() => onAction('accept', request._id)} className="btn-primary inline-flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={maxApprovableQuantity}
+                value={approveQuantityInput}
+                onChange={(e) => {
+                  const rawValue = e.target.value;
+                  if (rawValue === '') {
+                    setApproveQuantityInput('');
+                    return;
+                  }
+
+                  if (!/^\d+$/.test(rawValue)) {
+                    return;
+                  }
+
+                  const parsedValue = Number.parseInt(rawValue, 10);
+                  const clampedValue = Math.min(Math.max(1, parsedValue), maxApprovableQuantity);
+                  setApproveQuantityInput(String(clampedValue));
+                }}
+                onBlur={() => setApproveQuantityInput(String(normalizedApproveQuantity))}
+                placeholder="Enter qty"
+                className="input w-28"
+              />
+            </div>
+            <button onClick={() => onAction('accept', request._id, normalizedApproveQuantity)} className="btn-primary inline-flex items-center gap-2">
               <FiCheck />
               Accept
             </button>
@@ -77,8 +152,7 @@ const RequestCard = ({
           </>
         )}
 
-        {((type === 'sent' && request.status === 'accepted') ||
-          (type === 'received' && request.status === 'accepted')) && (
+        {type === 'received' && request.status === 'accepted' && (
           <button onClick={() => onAction('confirm', request._id)} className="btn-primary inline-flex items-center gap-2">
             <FiCheck />
             Confirm Pickup
@@ -197,6 +271,12 @@ const MyRequests = () => {
   const [ratingLoadingId, setRatingLoadingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [pickupOtpModal, setPickupOtpModal] = useState({
+    isOpen: false,
+    requestId: null,
+    otp: '',
+    submitting: false,
+  });
 
   const highlightedRequestId = searchParams.get('rateRequest');
 
@@ -304,12 +384,13 @@ const MyRequests = () => {
     }
   };
 
-  const handleAction = async (action, requestId) => {
+  const handleAction = async (action, requestId, approvedQuantity) => {
     try {
       setActionLoadingId(requestId);
 
       if (action === 'accept') {
         await api.put(`/requests/${requestId}/accept`, {
+          approvedQuantity,
           responseMessage: 'Pickup approved. See you soon.',
         });
         toast.success('Request accepted');
@@ -323,7 +404,19 @@ const MyRequests = () => {
       }
 
       if (action === 'confirm') {
-        await api.put(`/requests/${requestId}/confirm`);
+        const otpInitResponse = await api.put(`/requests/${requestId}/confirm`);
+
+        if (otpInitResponse.data?.requiresOtp) {
+          toast.success(otpInitResponse.data.message || 'OTP sent to requester email');
+          setPickupOtpModal({
+            isOpen: true,
+            requestId,
+            otp: '',
+            submitting: false,
+          });
+          return;
+        }
+
         toast.success('Pickup confirmed');
       }
 
@@ -337,6 +430,36 @@ const MyRequests = () => {
       toast.error(error.response?.data?.message || 'Action failed');
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleCloseOtpModal = () => {
+    setPickupOtpModal({
+      isOpen: false,
+      requestId: null,
+      otp: '',
+      submitting: false,
+    });
+  };
+
+  const handleSubmitPickupOtp = async (e) => {
+    e.preventDefault();
+
+    const otp = pickupOtpModal.otp.trim();
+    if (!/^\d{6}$/.test(otp)) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    try {
+      setPickupOtpModal((prev) => ({ ...prev, submitting: true }));
+      await api.put(`/requests/${pickupOtpModal.requestId}/confirm`, { otp });
+      toast.success('Pickup confirmed');
+      handleCloseOtpModal();
+      await loadRequests();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'OTP verification failed');
+      setPickupOtpModal((prev) => ({ ...prev, submitting: false }));
     }
   };
 
@@ -406,6 +529,62 @@ const MyRequests = () => {
           </div>
         )}
       </div>
+
+      {pickupOtpModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white dark:bg-gray-800 shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Confirm Pickup with OTP</h3>
+              <button
+                type="button"
+                onClick={handleCloseOtpModal}
+                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                disabled={pickupOtpModal.submitting}
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitPickupOtp} className="p-4 space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Enter the 6-digit OTP sent to requester email to complete pickup.
+              </p>
+
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={pickupOtpModal.otp}
+                onChange={(e) => setPickupOtpModal((prev) => ({
+                  ...prev,
+                  otp: e.target.value.replace(/\D/g, '').slice(0, 6),
+                }))}
+                placeholder="Enter 6-digit OTP"
+                className="input text-center tracking-[0.35em]"
+                autoFocus
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCloseOtpModal}
+                  className="btn-secondary flex-1"
+                  disabled={pickupOtpModal.submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1"
+                  disabled={pickupOtpModal.submitting}
+                >
+                  {pickupOtpModal.submitting ? 'Verifying...' : 'Verify OTP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

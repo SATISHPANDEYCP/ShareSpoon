@@ -32,6 +32,15 @@ const requestSchema = new mongoose.Schema(
     pickupTime: {
       type: Date
     },
+    requestedQuantity: {
+      type: Number,
+      required: [true, 'Requested quantity is required'],
+      min: [1, 'Requested quantity must be at least 1']
+    },
+    approvedQuantity: {
+      type: Number,
+      min: [1, 'Approved quantity must be at least 1']
+    },
     
     // Status
     status: {
@@ -53,6 +62,24 @@ const requestSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    pickupConfirmationOtp: {
+      type: String,
+      select: false
+    },
+    pickupConfirmationOtpExpiry: {
+      type: Date,
+      select: false
+    },
+    ratingReminderDueAt: {
+      type: Date
+    },
+    ratingReminderSent: {
+      type: Boolean,
+      default: false
+    },
+    ratingReminderSentAt: {
+      type: Date
+    },
     
     // Cancellation
     cancelledBy: {
@@ -71,6 +98,7 @@ requestSchema.index({ post: 1, requester: 1 }, { unique: true }); // One request
 requestSchema.index({ requester: 1, status: 1 });
 requestSchema.index({ donor: 1, status: 1 });
 requestSchema.index({ post: 1, status: 1 });
+requestSchema.index({ status: 1, ratingReminderSent: 1, ratingReminderDueAt: 1 });
 
 /**
  * Pre-save middleware to set timestamps

@@ -7,6 +7,7 @@ import {
   deletePost,
   getMyPosts,
   expirePost,
+  unexpirePost,
   searchPosts
 } from '../controllers/postController.js';
 import { protect, optionalAuth } from '../middleware/authMiddleware.js';
@@ -37,5 +38,6 @@ router.get('/:id', idValidation, getPostById);
 router.put('/:id', protect, idValidation, updatePost);
 router.delete('/:id', protect, idValidation, deletePost);
 router.put('/:id/expire', protect, idValidation, expirePost);
+router.put('/:id/unexpire', protect, idValidation, unexpirePost);
 
 export default router;
