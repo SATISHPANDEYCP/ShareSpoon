@@ -5,9 +5,12 @@ import api from '../utils/api';
 import Loader from '../components/Loader';
 import { formatDate } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import UserAvatar from '../components/UserAvatar';
 
 const Profile = () => {
-  const { user, updateProfile, loading } = useAuthStore();
+  const navigate = useNavigate();
+  const { user, updateProfile, loading, logout } = useAuthStore();
   const [submitting, setSubmitting] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [donations, setDonations] = useState([]);
@@ -122,6 +125,25 @@ const Profile = () => {
     setSubmitting(false);
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('Are you sure you want to delete your profile? This action cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await api.delete('/users/me');
+      logout();
+      toast.success('Profile deleted successfully');
+      navigate('/register');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete profile');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -130,11 +152,9 @@ const Profile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="card p-6">
             <div className="text-center">
-              <img
-                src={user?.avatar || 'https://via.placeholder.com/120'}
-                alt={user?.name}
-                className="w-24 h-24 rounded-full object-cover mx-auto"
-              />
+              <div className="flex justify-center">
+                <UserAvatar src={user?.avatar} name={user?.name} sizeClass="w-24 h-24" textClass="text-3xl" />
+              </div>
               <h2 className="text-xl font-semibold mt-3 text-gray-900 dark:text-white">{user?.name}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</p>
             </div>
@@ -161,6 +181,14 @@ const Profile = () => {
               >
                 <FiCamera />
                 Upload
+              </button>
+              <button
+                type="button"
+                className="btn-danger w-full mt-3"
+                onClick={handleDeleteAccount}
+                disabled={submitting}
+              >
+                Delete Profile
               </button>
             </div>
           </div>

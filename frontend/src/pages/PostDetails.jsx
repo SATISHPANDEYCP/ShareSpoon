@@ -7,6 +7,7 @@ import RequestModal from '../components/RequestModal';
 import useAuthStore from '../store/authStore';
 import { formatDateTime, getTimeUntilExpiry } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
+import UserAvatar from '../components/UserAvatar';
 
 const PostDetails = () => {
   const { id } = useParams();
@@ -203,11 +204,7 @@ const PostDetails = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Donor</h2>
               <div className="flex items-center gap-3">
-                <img
-                  src={post.donor?.avatar || 'https://via.placeholder.com/60'}
-                  alt={post.donor?.name}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
+                <UserAvatar src={post.donor?.avatar} name={post.donor?.name} sizeClass="w-12 h-12" textClass="text-base" />
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{post.donor?.name}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">

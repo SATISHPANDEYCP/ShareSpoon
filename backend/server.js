@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: '🍕 Neighborhood Food Sharing API is running!',
+    message: '🍕 Share Spoon API is running!',
     version: '1.0.0'
   });
 });

@@ -23,6 +23,14 @@ export const createPost = async (req, res) => {
       allergenInfo
     } = req.body;
 
+    const parsedPickupLocation = typeof pickupLocation === 'string'
+      ? JSON.parse(pickupLocation)
+      : pickupLocation;
+
+    const parsedHygieneChecklist = typeof hygieneChecklist === 'string'
+      ? JSON.parse(hygieneChecklist)
+      : hygieneChecklist;
+
     // Handle image uploads
     let images = [];
     if (req.files && req.files.length > 0) {
@@ -47,9 +55,9 @@ export const createPost = async (req, res) => {
       pickupTimeStart,
       pickupTimeEnd,
       images,
-      pickupLocation,
-      address,
-      hygieneChecklist,
+      pickupLocation: parsedPickupLocation,
+      address: address || parsedPickupLocation?.address,
+      hygieneChecklist: parsedHygieneChecklist,
       allergenInfo
     });
 

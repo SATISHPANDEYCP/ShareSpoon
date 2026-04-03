@@ -1,7 +1,12 @@
 import User from '../models/User.js';
 import FoodPost from '../models/FoodPost.js';
+import Request from '../models/Request.js';
 import Review from '../models/Review.js';
-import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUtils.js';
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+  extractPublicIdFromCloudinaryUrl
+} from '../utils/cloudinaryUtils.js';
 
 /**
  * @desc    Get user profile by ID
@@ -71,16 +76,17 @@ export const updateAvatar = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     // Delete old avatar from Cloudinary if exists
-    if (user.avatar && user.avatar.includes('cloudinary')) {
-      const publicId = user.avatar.split('/').slice(-2).join('/').split('.')[0];
-      await deleteFromCloudinary(publicId);
+    const oldAvatarPublicId = user.avatarPublicId || extractPublicIdFromCloudinaryUrl(user.avatar);
+    if (oldAvatarPublicId && !oldAvatarPublicId.includes('default-avatar')) {
+      await deleteFromCloudinary(oldAvatarPublicId);
     }
 
     // Upload new avatar
-    const result = await uploadToCloudinary(req.file.buffer, 'food-sharing/avatars');
+    const result = await uploadToCloudinary(req.file.buffer, 'share-spoon/avatars');
 
     // Update user
     user.avatar = result.url;
+    user.avatarPublicId = result.publicId;
     await user.save();
 
     res.status(200).json({
@@ -93,6 +99,113 @@ export const updateAvatar = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating avatar',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Delete current user's profile
+ * @route   DELETE /api/users/me
+ * @access  Private
+ */
+export const deleteMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const avatarPublicId = user.avatarPublicId || extractPublicIdFromCloudinaryUrl(user.avatar);
+    if (avatarPublicId && !avatarPublicId.includes('default-avatar')) {
+      await deleteFromCloudinary(avatarPublicId);
+    }
+
+    // Delete all donated posts and their images from Cloudinary.
+    const donatedPosts = await FoodPost.find({ donor: userId });
+    const donatedPostIds = donatedPosts.map((post) => post._id);
+
+    for (const post of donatedPosts) {
+      if (post.images?.length) {
+        for (const image of post.images) {
+          if (image.publicId) {
+            await deleteFromCloudinary(image.publicId);
+          }
+        }
+      }
+    }
+
+    // Collect all related requests so references can be removed from remaining posts.
+    const relatedRequests = await Request.find({
+      $or: [{ requester: userId }, { donor: userId }]
+    }).select('_id');
+    const relatedRequestIds = relatedRequests.map((request) => request._id);
+
+    // Remove user references from posts that will remain.
+    await FoodPost.updateMany(
+      { receiver: userId },
+      { $unset: { receiver: '', acceptedRequest: '' }, $set: { status: 'available' } }
+    );
+
+    if (relatedRequestIds.length > 0) {
+      await FoodPost.updateMany(
+        { activeRequests: { $in: relatedRequestIds } },
+        {
+          $pull: { activeRequests: { $in: relatedRequestIds } },
+          $unset: { acceptedRequest: '' }
+        }
+      );
+
+      // Normalize post status where request relations were removed.
+      const impactedPosts = await FoodPost.find({
+        _id: { $nin: donatedPostIds },
+        status: { $in: ['requested', 'reserved'] }
+      }).select('_id activeRequests acceptedRequest');
+
+      for (const post of impactedPosts) {
+        if ((!post.activeRequests || post.activeRequests.length === 0) && !post.acceptedRequest) {
+          post.status = 'available';
+          await post.save();
+        }
+      }
+    }
+
+    // Delete related reviews and requests.
+    await Review.deleteMany({
+      $or: [
+        { reviewer: userId },
+        { reviewee: userId },
+        { post: { $in: donatedPostIds } },
+        { request: { $in: relatedRequestIds } }
+      ]
+    });
+
+    await Request.deleteMany({
+      $or: [
+        { requester: userId },
+        { donor: userId },
+        { post: { $in: donatedPostIds } }
+      ]
+    });
+
+    await FoodPost.deleteMany({ donor: userId });
+
+    await user.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete profile error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error deleting profile',
       error: error.message
     });
   }

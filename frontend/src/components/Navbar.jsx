@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fi';
 import useAuthStore from '../store/authStore';
 import useUIStore from '../store/uiStore';
+import UserAvatar from './UserAvatar';
 
 /**
  * Navbar Component
@@ -46,9 +47,13 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl">🍕</span>
+              <img
+                src="/icon.png"
+                alt="Share Spoon"
+                className="w-14 h-14 object-contain"
+              />
               <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
-                FoodShare
+                Share Spoon
               </span>
             </Link>
           </div>
@@ -87,11 +92,7 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="relative group">
                 <button className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                  <img
-                    src={user?.avatar || 'https://via.placeholder.com/40'}
-                    alt={user?.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  <UserAvatar src={user?.avatar} name={user?.name} sizeClass="w-8 h-8" textClass="text-sm" />
                   <span className="text-gray-700 dark:text-gray-300">
                     {user?.name}
                   </span>

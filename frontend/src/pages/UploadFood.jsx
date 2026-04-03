@@ -17,6 +17,11 @@ const foodTypes = [
   'Other',
 ];
 
+const getLocalDateTimeInputValue = (date = new Date()) => {
+  const tzOffsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+};
+
 /**
  * Upload Food Page
  */
@@ -25,6 +30,7 @@ const UploadFood = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const minDateTime = getLocalDateTimeInputValue();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -139,7 +145,10 @@ const UploadFood = () => {
       navigate('/');
     } catch (error) {
       console.error('Upload error:', error);
-      const message = error.response?.data?.message || 'Failed to create post';
+      const validationErrors = error.response?.data?.errors;
+      const message = validationErrors?.length
+        ? `${validationErrors[0].field}: ${validationErrors[0].message}`
+        : (error.response?.data?.message || 'Failed to create post');
       toast.error(message);
     } finally {
       setLoading(false);
@@ -236,7 +245,7 @@ const UploadFood = () => {
               value={formData.expiryTime}
               onChange={handleChange}
               required
-              min={new Date().toISOString().slice(0, 16)}
+              min={minDateTime}
               className="input"
             />
           </div>
@@ -250,7 +259,7 @@ const UploadFood = () => {
                 name="pickupTimeStart"
                 value={formData.pickupTimeStart}
                 onChange={handleChange}
-                min={new Date().toISOString().slice(0, 16)}
+                min={minDateTime}
                 className="input"
               />
             </div>
@@ -262,7 +271,7 @@ const UploadFood = () => {
                 name="pickupTimeEnd"
                 value={formData.pickupTimeEnd}
                 onChange={handleChange}
-                min={formData.pickupTimeStart || new Date().toISOString().slice(0, 16)}
+                min={formData.pickupTimeStart || minDateTime}
                 className="input"
               />
             </div>

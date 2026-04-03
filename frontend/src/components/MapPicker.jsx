@@ -242,10 +242,16 @@ const MapPicker = ({ location, onLocationChange }) => {
               draggable
               onDragEnd={handleMarkerDragEnd}
             >
-              <div className="relative cursor-move">
-                <div className="text-4xl drop-shadow-lg" title="Drag to adjust location">
-                  📍
+              <div className="group relative cursor-move -translate-y-2" title="Drag to adjust location">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-primary-400/25 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity" />
+                <div className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl flex items-center justify-center">
+                  <img
+                    src="/icon.png"
+                    alt="Pickup marker"
+                    className="w-10 h-10 object-contain scale-125"
+                  />
                 </div>
+                <div className="absolute left-1/2 -bottom-2.5 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[10px] border-t-white dark:border-t-gray-800" />
               </div>
             </Marker>
           )}
@@ -255,7 +261,7 @@ const MapPicker = ({ location, onLocationChange }) => {
       <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
         <FiMapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
         <p>
-          <strong>How to select:</strong> Search for an address above, click on the map, or drag the 📍 marker to set pickup location
+          <strong>How to select:</strong> Search for an address above, click on the map, or drag the marker to set pickup location
         </p>
       </div>
 
@@ -318,12 +324,22 @@ export const MapView = ({ posts, center, onMarkerClick }) => {
               longitude={longitude}
               onClick={() => onMarkerClick && onMarkerClick(post)}
             >
-              <div 
-                className="cursor-pointer text-2xl"
+              <button
+                type="button"
+                className="group relative -translate-y-2"
+                onClick={() => onMarkerClick && onMarkerClick(post)}
                 title={post.title}
               >
-                🍕
-              </div>
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-primary-400/25 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity" />
+                <div className="w-11 h-11 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg flex items-center justify-center">
+                  <img
+                    src="/icon.png"
+                    alt={post.title}
+                    className="w-9 h-9 object-contain scale-125"
+                  />
+                </div>
+                <div className="absolute left-1/2 -bottom-2.5 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[10px] border-t-white dark:border-t-gray-800" />
+              </button>
             </Marker>
           );
         })}

@@ -1,6 +1,7 @@
 import Request from '../models/Request.js';
 import FoodPost from '../models/FoodPost.js';
 import User from '../models/User.js';
+import { sendPickupRatingReminderEmail } from '../utils/emailUtils.js';
 
 /**
  * @desc    Create a food request
@@ -370,6 +371,26 @@ export const confirmPickup = async (req, res) => {
     await User.findByIdAndUpdate(request.requester, {
       $inc: { foodReceived: 1 }
     });
+
+    // Send rating reminder email to requester without blocking the main flow
+    try {
+      const [requester, donor] = await Promise.all([
+        User.findById(request.requester).select('name email'),
+        User.findById(request.donor).select('name')
+      ]);
+
+      if (requester?.email) {
+        await sendPickupRatingReminderEmail({
+          to: requester.email,
+          requesterName: requester.name,
+          donorName: donor?.name,
+          postTitle: post.title,
+          requestId: request._id.toString(),
+        });
+      }
+    } catch (emailError) {
+      console.error('Rating reminder email error:', emailError.message);
+    }
 
     // Send socket notification
     const io = req.app.get('io');

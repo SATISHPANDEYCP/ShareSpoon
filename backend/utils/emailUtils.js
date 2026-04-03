@@ -28,27 +28,14 @@ const base64UrlEncode = (value) => {
     .replace(/=+$/g, '');
 };
 
-export const sendOtpEmail = async ({ to, name, otp }) => {
+const sendHtmlEmail = async ({ to, subject, html }) => {
   const { oauthClient, user } = createOAuthClient();
   const from = process.env.EMAIL_FROM || user;
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
-      <h2 style="color: #166534;">Verify your ShareSpoon account</h2>
-      <p>Hi ${name || 'there'},</p>
-      <p>Your OTP for email verification is:</p>
-      <div style="font-size: 28px; letter-spacing: 6px; font-weight: 700; color: #111827; margin: 16px 0;">
-        ${otp}
-      </div>
-      <p>This OTP will expire in 10 minutes.</p>
-      <p>If you did not create this account, you can ignore this email.</p>
-    </div>
-  `;
 
   const rawMessage = [
     `From: ${from}`,
     `To: ${to}`,
-    'Subject: Your ShareSpoon verification code',
+    `Subject: ${subject}`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=UTF-8',
     '',
@@ -61,5 +48,58 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
     requestBody: {
       raw: base64UrlEncode(rawMessage),
     },
+  });
+};
+
+export const sendOtpEmail = async ({ to, name, otp }) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">Verify your Share Spoon account</h2>
+      <p>Hi ${name || 'there'},</p>
+      <p>Your OTP for email verification is:</p>
+      <div style="font-size: 28px; letter-spacing: 6px; font-weight: 700; color: #111827; margin: 16px 0;">
+        ${otp}
+      </div>
+      <p>This OTP will expire in 10 minutes.</p>
+      <p>If you did not create this account, you can ignore this email.</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Your Share Spoon verification code',
+    html,
+  });
+};
+
+export const sendPickupRatingReminderEmail = async ({
+  to,
+  requesterName,
+  donorName,
+  postTitle,
+  requestId,
+}) => {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const ratingUrl = `${baseUrl}/requests?tab=sent&rateRequest=${requestId}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">How was your Share Spoon pickup?</h2>
+      <p>Hi ${requesterName || 'there'},</p>
+      <p>Your pickup for <strong>${postTitle || 'your food request'}</strong> has been marked as completed.</p>
+      <p>Please rate your experience with donor <strong>${donorName || 'the donor'}</strong>.</p>
+      <p style="margin: 20px 0;">
+        <a href="${ratingUrl}" style="background: #16a34a; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+          Rate this pickup
+        </a>
+      </p>
+      <p style="font-size: 12px; color: #6b7280;">If the button does not work, copy this link: ${ratingUrl}</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Rate your completed pickup on Share Spoon',
+    html,
   });
 };

@@ -50,7 +50,11 @@ const Login = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <span className="text-6xl">🍕</span>
+            <img
+              src="/icon.png"
+              alt="Share Spoon"
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
             Welcome Back!

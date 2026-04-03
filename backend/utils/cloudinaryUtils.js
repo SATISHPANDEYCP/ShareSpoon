@@ -50,6 +50,20 @@ export const deleteFromCloudinary = async (publicId) => {
 };
 
 /**
+ * Extract Cloudinary public ID from secure URL
+ * @param {string} url - Cloudinary delivery URL
+ * @returns {string|null} Public ID or null
+ */
+export const extractPublicIdFromCloudinaryUrl = (url) => {
+  if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com')) {
+    return null;
+  }
+
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+(?:\?.*)?$/);
+  return match?.[1] || null;
+};
+
+/**
  * Upload multiple images to Cloudinary
  * @param {Array} files - Array of file buffers
  * @param {string} folder - Cloudinary folder name

@@ -1,5 +1,17 @@
 import { body, param, query, validationResult } from 'express-validator';
 
+const parseJsonIfString = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
 /**
  * Middleware to handle validation errors
  */
@@ -83,6 +95,13 @@ export const resendOtpValidation = [
  * Food Post validation rules
  */
 export const createPostValidation = [
+  body('pickupLocation')
+    .customSanitizer(parseJsonIfString),
+
+  body('hygieneChecklist')
+    .optional({ checkFalsy: true })
+    .customSanitizer(parseJsonIfString),
+
   body('title')
     .trim()
     .notEmpty().withMessage('Title is required')
@@ -112,16 +131,33 @@ export const createPostValidation = [
       return true;
     }),
   
-  body('pickupLocation.coordinates')
-    .isArray({ min: 2, max: 2 }).withMessage('Coordinates must be an array of [longitude, latitude]')
+  body('pickupLocation')
     .custom((value) => {
-      const [lng, lat] = value;
-      if (typeof lng !== 'number' || typeof lat !== 'number') {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Pickup location is required');
+      }
+
+      if (value.type && value.type !== 'Point') {
+        throw new Error('Pickup location type must be Point');
+      }
+
+      if (!Array.isArray(value.coordinates) || value.coordinates.length !== 2) {
+        throw new Error('Coordinates must be an array of [longitude, latitude]');
+      }
+
+      const lng = Number(value.coordinates[0]);
+      const lat = Number(value.coordinates[1]);
+
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
         throw new Error('Coordinates must be numbers');
       }
+
       if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
         throw new Error('Invalid coordinate values');
       }
+
+      value.type = 'Point';
+      value.coordinates = [lng, lat];
       return true;
     }),
   
@@ -157,6 +193,19 @@ export const createReviewValidation = [
     .trim()
     .isLength({ max: 500 }).withMessage('Comment cannot exceed 500 characters'),
   
+  validate
+];
+
+export const updateReviewValidation = [
+  body('rating')
+    .optional()
+    .isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+
+  body('comment')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Comment cannot exceed 500 characters'),
+
   validate
 ];
 

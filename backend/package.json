@@ -1,7 +1,7 @@
 {
   "name": "food-sharing-backend",
   "version": "1.0.0",
-  "description": "Backend API for Neighborhood Food Sharing App",
+  "description": "Backend API for Share Spoon",
   "main": "server.js",
   "type": "module",
   "scripts": {

@@ -27,7 +27,7 @@ const seedDatabase = async () => {
     // Create admin user
     const admin = await User.create({
       name: 'Admin User',
-      email: 'admin@foodshare.com',
+      email: 'admin@sharespoon.com',
       password: 'admin123',
       role: 'admin',
       phone: '+919876543210',
@@ -249,7 +249,7 @@ const seedDatabase = async () => {
 
     console.log('\n✅ Database seeded successfully!\n');
     console.log('📧 Admin Credentials:');
-    console.log('   Email: admin@foodshare.com');
+    console.log('   Email: admin@sharespoon.com');
     console.log('   Password: admin123\n');
     console.log('📧 User Credentials:');
     console.log('   Email: john@example.com, jane@example.com, mike@example.com');

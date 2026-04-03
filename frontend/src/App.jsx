@@ -1,12 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { lazy, Suspense, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 // Store
 import useAuthStore from './store/authStore';
 
 // Components
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import PrivateRoute, { AdminRoute } from './components/PrivateRoute';
 
 // Pages (lazy loaded for better code splitting)
@@ -23,10 +25,19 @@ const Settings = lazy(() => import('./pages/Settings'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 
 // Socket connection
-import { initializeSocket } from './utils/socket';
+import { initializeSocket, onSocketEvent, offSocketEvent } from './utils/socket';
 
 function App() {
   const { loadUser, user, isAuthenticated } = useAuthStore();
+
+  const buildRatingLink = (request) => {
+    if (!request?._id || !user?._id) {
+      return '/requests';
+    }
+
+    const tab = request.requester === user._id ? 'sent' : 'received';
+    return `/requests?tab=${tab}&rateRequest=${request._id}`;
+  };
 
   useEffect(() => {
     // Load user from localStorage on app start
@@ -40,9 +51,104 @@ function App() {
     }
   }, [isAuthenticated, user]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    const showRequestToast = ({ message, ctaText, link }) => {
+      toast.custom((t) => (
+        <div
+          className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto border border-gray-200 dark:border-gray-700`}
+        >
+          <div className="p-4">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{message}</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  window.location.assign(link);
+                }}
+              >
+                {ctaText}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => toast.dismiss(t.id)}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      ), { duration: 8000 });
+    };
+
+    const handleNewRequest = (payload) => {
+      showRequestToast({
+        message: payload?.message || 'You received a new food request.',
+        ctaText: 'Review Request',
+        link: '/requests?tab=received',
+      });
+    };
+
+    const handleRequestAccepted = (payload) => {
+      showRequestToast({
+        message: payload?.message || 'Your request has been accepted.',
+        ctaText: 'View Status',
+        link: '/requests?tab=sent',
+      });
+    };
+
+    const handleRequestRejected = (payload) => {
+      showRequestToast({
+        message: payload?.message || 'Your request was not accepted.',
+        ctaText: 'View Requests',
+        link: '/requests?tab=sent',
+      });
+    };
+
+    const handleRequestCancelled = (payload) => {
+      showRequestToast({
+        message: payload?.message || 'A requester cancelled the request.',
+        ctaText: 'Check Requests',
+        link: '/requests?tab=received',
+      });
+    };
+
+    const handlePickupConfirmed = (payload) => {
+      const request = payload?.request;
+      const message = payload?.message || 'Pickup completed. Please rate your experience.';
+      const ratingLink = buildRatingLink(request);
+
+      showRequestToast({
+        message,
+        ctaText: 'Rate Now',
+        link: ratingLink,
+      });
+    };
+
+    onSocketEvent('newRequest', handleNewRequest);
+    onSocketEvent('requestAccepted', handleRequestAccepted);
+    onSocketEvent('requestRejected', handleRequestRejected);
+    onSocketEvent('requestCancelled', handleRequestCancelled);
+    onSocketEvent('pickupConfirmed', handlePickupConfirmed);
+
+    return () => {
+      offSocketEvent('newRequest', handleNewRequest);
+      offSocketEvent('requestAccepted', handleRequestAccepted);
+      offSocketEvent('requestRejected', handleRequestRejected);
+      offSocketEvent('requestCancelled', handleRequestCancelled);
+      offSocketEvent('pickupConfirmed', handlePickupConfirmed);
+    };
+  }, [isAuthenticated, user]);
+
   return (
     <Router>
-      <div className="App">
+      <div className="App min-h-screen flex flex-col">
         {/* Toast Notifications */}
         <Toaster
           position="top-right"
@@ -73,14 +179,15 @@ function App() {
         <Navbar />
 
         {/* Routes */}
-        <Suspense
-          fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-              <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          }
-        >
-          <Routes>
+        <main className="flex-1">
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            }
+          >
+            <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -183,8 +290,11 @@ function App() {
               </div>
             }
           />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+        </main>
+
+        <Footer />
       </div>
     </Router>
   );

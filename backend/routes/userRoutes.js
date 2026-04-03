@@ -4,7 +4,8 @@ import {
   updateAvatar,
   getNearbyUsers,
   getDonationHistory,
-  getReceivedHistory
+  getReceivedHistory,
+  deleteMyProfile
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { upload, handleUploadError } from '../middleware/upload.js';
@@ -19,6 +20,7 @@ router.get('/nearby', protect, getNearbyUsers);
 router.get('/donations', protect, getDonationHistory);
 router.get('/received', protect, getReceivedHistory);
 router.put('/avatar', protect, upload.single('avatar'), handleUploadError, updateAvatar);
+router.delete('/me', protect, deleteMyProfile);
 router.get('/:id', idValidation, getUserProfile);
 
 export default router;

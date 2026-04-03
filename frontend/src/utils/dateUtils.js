@@ -1,5 +1,18 @@
 import { format, formatDistance, formatRelative, isPast } from 'date-fns';
 
+const INDIA_TIME_ZONE = 'Asia/Kolkata';
+
+const indiaDateTimeFormatter = new Intl.DateTimeFormat('en-IN', {
+  timeZone: INDIA_TIME_ZONE,
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true,
+});
+
 /**
  * Format date to readable string
  * @param {Date|string} date - Date to format
@@ -59,4 +72,21 @@ export const getTimeUntilExpiry = (date) => {
   if (!date) return 'N/A';
   if (isExpired(date)) return 'Expired';
   return formatDistance(new Date(date), new Date(), { addSuffix: true });
+};
+
+/**
+ * Format a date in India timezone
+ * @param {Date|string|number} date - Date value
+ * @returns {string} Formatted IST datetime
+ */
+export const formatIndiaDateTime = (date = new Date()) => {
+  return indiaDateTimeFormatter.format(new Date(date));
+};
+
+/**
+ * Get current India local time string
+ * @returns {string} Current IST datetime
+ */
+export const getCurrentIndiaDateTime = () => {
+  return formatIndiaDateTime(new Date());
 };
