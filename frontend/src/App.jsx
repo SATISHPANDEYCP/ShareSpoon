@@ -25,7 +25,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 
 // Socket connection
-import { initializeSocket, onSocketEvent, offSocketEvent } from './utils/socket';
+import { onSocketEvent, offSocketEvent } from './utils/socket';
 
 function App() {
   const { loadUser, user, isAuthenticated } = useAuthStore();
@@ -43,13 +43,6 @@ function App() {
     // Load user from localStorage on app start
     loadUser();
   }, []);
-
-  useEffect(() => {
-    // Initialize socket if authenticated
-    if (isAuthenticated && user) {
-      initializeSocket(user._id);
-    }
-  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {

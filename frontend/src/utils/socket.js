@@ -37,13 +37,6 @@ export const initializeSocket = (userId) => {
 };
 
 /**
- * Get socket instance
- */
-export const getSocket = () => {
-  return socket;
-};
-
-/**
  * Disconnect socket
  */
 export const disconnectSocket = () => {
@@ -76,11 +69,3 @@ export const offSocketEvent = (event, callback) => {
   }
 };
 
-/**
- * Emit socket event
- */
-export const emitSocketEvent = (event, data) => {
-  if (socket) {
-    socket.emit(event, data);
-  }
-};

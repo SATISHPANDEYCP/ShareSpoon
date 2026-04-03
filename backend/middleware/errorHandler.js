@@ -60,12 +60,3 @@ export const errorHandler = (err, req, res, next) => {
   });
 };
 
-/**
- * Not found handler
- * Handles 404 errors for routes that don't exist
- */
-export const notFound = (req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  res.status(404);
-  next(error);
-};
