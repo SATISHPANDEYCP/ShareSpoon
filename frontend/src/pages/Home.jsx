@@ -19,6 +19,7 @@ const Home = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationReady, setLocationReady] = useState(false);
   const [stats, setStats] = useState(null);
   const [searchRadius, setSearchRadius] = useState(10); // Default 10km
 
@@ -27,19 +28,27 @@ const Home = () => {
     getCurrentLocation()
       .then((location) => {
         setUserLocation(location);
+        setLocationReady(true);
       })
       .catch((error) => {
         console.error('Error getting location:', error);
+        // Continue without geo coordinates when location access is blocked/unavailable.
+        setLocationReady(true);
       });
   }, []);
 
   // Fetch posts
   useEffect(() => {
+    if (!locationReady) return;
+
     fetchPosts();
+  }, [locationReady, userLocation, searchRadius]); // Re-fetch when location/radius changes after location resolves
+
+  useEffect(() => {
     if (user?.role === 'admin') {
       fetchStats();
     }
-  }, [userLocation, searchRadius]); // Re-fetch when location or radius changes
+  }, [user?.role]);
 
   const fetchPosts = async () => {
     try {
