@@ -1,10 +1,13 @@
 import User from '../models/User.js';
+import crypto from 'crypto';
 import { sendTokenResponse } from '../utils/tokenUtils.js';
-import { sendOtpEmail } from '../utils/emailUtils.js';
+import { sendOtpEmail, sendPasswordResetOtpEmail } from '../utils/emailUtils.js';
 
 const OTP_EXPIRY_MINUTES = 10;
 
 const generateOtp = () => `${Math.floor(100000 + Math.random() * 900000)}`;
+const generateSecureOtp = () => crypto.randomInt(100000, 1000000).toString();
+const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
 const generateFallbackPassword = () => {
   const randomPart = Math.random().toString(36).slice(-10);
@@ -268,6 +271,112 @@ export const updatePassword = async (req, res) => {
       success: false,
       message: 'Error updating password',
       error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Email a password reset OTP
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = async (req, res) => {
+  const genericResponse = {
+    success: true,
+    message: 'If an eligible account exists for this email, a reset code has been sent.'
+  };
+
+  try {
+    const normalizedEmail = req.body.email.toLowerCase().trim();
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+
+    // Keep the response identical to avoid revealing registered email addresses.
+    if (normalizedEmail === adminEmail) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+      emailVerified: true,
+      isActive: true,
+      isBanned: false
+    }).select('+passwordResetRequestedAt');
+
+    if (!user) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const cooldownMs = 60 * 1000;
+    if (user.passwordResetRequestedAt && Date.now() - user.passwordResetRequestedAt.getTime() < cooldownMs) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const otp = generateSecureOtp();
+    user.passwordResetOtpHash = hashOtp(otp);
+    user.passwordResetOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    user.passwordResetRequestedAt = new Date();
+    await user.save();
+
+    await sendPasswordResetOtpEmail({
+      to: user.email,
+      name: user.name,
+      otp
+    });
+
+    return res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to send a reset code right now. Please try again later.'
+    });
+  }
+};
+
+/**
+ * @desc    Reset password with an emailed OTP
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      '+password +passwordResetOtpHash +passwordResetOtpExpiry'
+    );
+
+    const submittedOtpHash = hashOtp(otp);
+    const hasValidOtp = user?.passwordResetOtpHash
+      && user?.passwordResetOtpExpiry
+      && user.passwordResetOtpExpiry > new Date()
+      && crypto.timingSafeEqual(
+        Buffer.from(user.passwordResetOtpHash, 'hex'),
+        Buffer.from(submittedOtpHash, 'hex')
+      );
+
+    if (!hasValidOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'The reset code is invalid or has expired. Please request a new code.'
+      });
+    }
+
+    user.password = newPassword;
+    user.passwordResetOtpHash = undefined;
+    user.passwordResetOtpExpiry = undefined;
+    user.passwordResetRequestedAt = undefined;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset successfully. You can now sign in.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to reset password right now. Please try again later.'
     });
   }
 };

@@ -79,10 +79,15 @@ const FoodCard = ({ post, onRequestFood, userLocation }) => {
             </span>
           </div>
           {/* Food Type Badge */}
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
             <span className="badge bg-white text-gray-800 shadow-md">
               {post.foodType}
             </span>
+            {post.dietaryType && (
+              <span className={`badge shadow-md ${post.dietaryType === 'Veg' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                {post.dietaryType}
+              </span>
+            )}
           </div>
           {Number.isFinite(totalQuantity) && Number.isFinite(availableQuantity) && (
             <div className="absolute bottom-2 left-2">

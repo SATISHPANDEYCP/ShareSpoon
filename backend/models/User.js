@@ -116,6 +116,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false
     },
+    passwordResetOtpHash: {
+      type: String,
+      select: false
+    },
+    passwordResetOtpExpiry: {
+      type: Date,
+      select: false
+    },
+    passwordResetRequestedAt: {
+      type: Date,
+      select: false
+    },
     phoneVerified: {
       type: Boolean,
       default: false

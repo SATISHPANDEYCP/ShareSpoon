@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import {
   FiHome,
   FiPlusCircle,
@@ -12,6 +12,7 @@ import {
   FiMoon,
   FiSun,
   FiMenu,
+  FiSearch,
   FiX,
 } from 'react-icons/fi';
 import useAuthStore from '../store/authStore';
@@ -24,13 +25,47 @@ import UserAvatar from './UserAvatar';
  */
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useUIStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [dietaryType, setDietaryType] = useState('All');
+
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+
+    const params = new URLSearchParams(location.search);
+    setSearchText(params.get('q') || '');
+    setDietaryType(params.get('dietaryType') || 'All');
+  }, [location.pathname, location.search]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openFilteredResults = (nextDietaryType = dietaryType) => {
+    const params = new URLSearchParams();
+    const trimmedSearch = searchText.trim();
+
+    if (trimmedSearch) params.set('q', trimmedSearch);
+    if (nextDietaryType !== 'All') params.set('dietaryType', nextDietaryType);
+
+    const queryString = params.toString();
+    navigate(queryString ? `/?${queryString}` : '/');
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    openFilteredResults();
+  };
+
+  const handleDietaryTypeChange = (event) => {
+    const nextDietaryType = event.target.value;
+    setDietaryType(nextDietaryType);
+    openFilteredResults(nextDietaryType);
   };
 
   const navigation = [
@@ -159,6 +194,49 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {isAuthenticated && (
+        <div className="border-t border-gray-100 dark:border-gray-700">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2"
+            role="search"
+          >
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                maxLength={100}
+                className="input py-2 pl-10"
+                placeholder="Search food by title, description, or category"
+                aria-label="Search available food"
+              />
+            </div>
+            <div className="relative w-28 sm:w-36 flex-shrink-0">
+              <select
+                value={dietaryType}
+                onChange={handleDietaryTypeChange}
+                className="input appearance-none py-2 pl-3 pr-10 w-full"
+                aria-label="Filter by dietary type"
+              >
+                <option value="All">All food</option>
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
+              </select>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-gray-700 dark:border-t-gray-200"
+              />
+            </div>
+            <button type="submit" className="btn-primary py-2 px-3 sm:px-5" aria-label="Search">
+              <FiSearch className="sm:hidden" />
+              <span className="hidden sm:inline">Search</span>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (

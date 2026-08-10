@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FiPlusCircle, FiMapPin, FiTrendingUp, FiSliders } from 'react-icons/fi';
 import api from '../utils/api';
 import FoodCard from '../components/FoodCard';
@@ -14,6 +14,9 @@ import { getCurrentLocation } from '../utils/locationUtils';
  */
 const Home = () => {
   const { user } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q')?.trim() || '';
+  const dietaryType = searchParams.get('dietaryType') || 'All';
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -42,7 +45,7 @@ const Home = () => {
     if (!locationReady) return;
 
     fetchPosts();
-  }, [locationReady, userLocation, searchRadius]); // Re-fetch when location/radius changes after location resolves
+  }, [locationReady, userLocation, searchRadius, searchQuery, dietaryType]); // Re-fetch when filters or location change
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -60,6 +63,9 @@ const Home = () => {
         params.latitude = userLocation.latitude;
         params.radius = searchRadius; // Use selected radius
       }
+
+      if (searchQuery) params.q = searchQuery;
+      if (dietaryType !== 'All') params.dietaryType = dietaryType;
 
       const response = await api.get('/posts', { params });
       setPosts(response.data.posts);
@@ -180,7 +186,9 @@ const Home = () => {
               Available Food Near You
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Fresh food donations from your neighbors
+              {searchQuery || dietaryType !== 'All'
+                ? `Showing ${dietaryType === 'All' ? 'all food' : dietaryType} results${searchQuery ? ` for “${searchQuery}”` : ''}`
+                : 'Fresh food donations from your neighbors'}
             </p>
           </div>
 
@@ -221,12 +229,18 @@ const Home = () => {
               No food posts available
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Be the first to share food in your area!
+              {searchQuery || dietaryType !== 'All'
+                ? 'Try another search term or change the dietary filter.'
+                : 'Be the first to share food in your area!'}
             </p>
-            <Link to="/upload" className="btn-primary">
-              <FiPlusCircle className="inline mr-2" />
-              Donate Food
-            </Link>
+            {searchQuery || dietaryType !== 'All' ? (
+              <Link to="/" className="btn-secondary">Clear filters</Link>
+            ) : (
+              <Link to="/upload" className="btn-primary">
+                <FiPlusCircle className="inline mr-2" />
+                Donate Food
+              </Link>
+            )}
           </div>
         ) : (
           /* Food Posts Grid */

@@ -39,6 +39,10 @@ const foodPostSchema = new mongoose.Schema(
         'Other'
       ]
     },
+    dietaryType: {
+      type: String,
+      enum: ['Veg', 'Non-Veg']
+    },
     quantity: {
       type: String,
       required: [true, 'Please specify quantity']

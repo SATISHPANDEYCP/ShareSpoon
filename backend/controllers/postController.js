@@ -3,6 +3,7 @@ import Request from '../models/Request.js';
 import { uploadMultipleToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUtils.js';
 
 const DONATE_POSTS_FOLDER = 'sharespoon/donate-posts';
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * @desc    Create a new food post
@@ -15,6 +16,7 @@ export const createPost = async (req, res) => {
       title,
       description,
       foodType,
+      dietaryType,
       quantity,
       totalQuantity,
       quantityUnit,
@@ -66,6 +68,7 @@ export const createPost = async (req, res) => {
       title,
       description,
       foodType,
+      dietaryType,
       quantity: normalizedQuantityText,
       totalQuantity: normalizedTotalQuantity,
       availableQuantity: normalizedTotalQuantity,
@@ -113,6 +116,8 @@ export const getPosts = async (req, res) => {
     const {
       status,
       foodType,
+      dietaryType,
+      q,
       longitude,
       latitude,
       radius = 10,
@@ -131,6 +136,20 @@ export const getPosts = async (req, res) => {
 
     if (foodType) {
       query.foodType = foodType;
+    }
+
+    if (dietaryType) {
+      query.dietaryType = dietaryType;
+    }
+
+    const searchTerm = typeof q === 'string' ? q.trim() : '';
+    if (searchTerm) {
+      const safeSearchTerm = escapeRegex(searchTerm);
+      query.$or = [
+        { title: { $regex: safeSearchTerm, $options: 'i' } },
+        { description: { $regex: safeSearchTerm, $options: 'i' } },
+        { foodType: { $regex: safeSearchTerm, $options: 'i' } }
+      ];
     }
 
     // Pagination
@@ -177,6 +196,7 @@ export const getPosts = async (req, res) => {
             title: 1,
             description: 1,
             foodType: 1,
+            dietaryType: 1,
             quantity: 1,
             totalQuantity: 1,
             availableQuantity: 1,
@@ -335,6 +355,7 @@ export const updatePost = async (req, res) => {
       'title',
       'description',
       'foodType',
+      'dietaryType',
       'quantity',
       'totalQuantity',
       'availableQuantity',

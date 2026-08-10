@@ -15,6 +15,7 @@ import PrivateRoute, { AdminRoute } from './components/PrivateRoute';
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const UploadFood = lazy(() => import('./pages/UploadFood'));
 const NearbyFood = lazy(() => import('./pages/NearbyFood'));
 const MyRequests = lazy(() => import('./pages/MyRequests'));
@@ -190,6 +191,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Protected Routes */}
           <Route

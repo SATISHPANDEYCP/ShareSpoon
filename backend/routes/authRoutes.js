@@ -4,6 +4,8 @@ import {
   login,
   verifyEmailOtp,
   resendOtp,
+  forgotPassword,
+  resetPassword,
   emailHealthCheck,
   getMe,
   updateProfile,
@@ -15,7 +17,9 @@ import {
   registerValidation,
   loginValidation,
   verifyOtpValidation,
-  resendOtpValidation
+  resendOtpValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation
 } from '../middleware/validation.js';
 
 const router = express.Router();
@@ -26,6 +30,8 @@ const router = express.Router();
 router.post('/register', registerValidation, register);
 router.post('/verify-otp', verifyOtpValidation, verifyEmailOtp);
 router.post('/resend-otp', resendOtpValidation, resendOtp);
+router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+router.post('/reset-password', resetPasswordValidation, resetPassword);
 router.post('/login', loginValidation, login);
 router.get('/email-health', protect, authorize('admin'), emailHealthCheck);
 router.get('/me', protect, getMe);

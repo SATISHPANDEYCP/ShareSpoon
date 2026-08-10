@@ -24,6 +24,7 @@ const PostDetails = () => {
     title: '',
     description: '',
     foodType: 'Cooked Meal',
+    dietaryType: '',
     totalQuantity: '',
     quantityUnit: '',
     servingsPerUnit: '',
@@ -144,6 +145,7 @@ const PostDetails = () => {
       title: post.title || '',
       description: post.description || '',
       foodType: post.foodType || 'Cooked Meal',
+      dietaryType: post.dietaryType || '',
       totalQuantity: post.totalQuantity || '',
       quantityUnit: post.quantityUnit || '',
       servingsPerUnit: post.servingsPerUnit || '',
@@ -173,6 +175,7 @@ const PostDetails = () => {
         title: editForm.title,
         description: editForm.description,
         foodType: editForm.foodType,
+        dietaryType: editForm.dietaryType,
         totalQuantity: Number(editForm.totalQuantity),
         quantityUnit: editForm.quantityUnit,
         servingsPerUnit: Number(editForm.servingsPerUnit),
@@ -218,6 +221,11 @@ const PostDetails = () => {
               <div className="p-6">
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                   <span className="badge bg-primary-100 text-primary-800">{post.foodType}</span>
+                  {post.dietaryType && (
+                    <span className={`badge ${post.dietaryType === 'Veg' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {post.dietaryType}
+                    </span>
+                  )}
                   <span className="badge-info capitalize">{post.status}</span>
                 </div>
 
@@ -406,7 +414,7 @@ const PostDetails = () => {
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-3 space-y-2.5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <div>
                   <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Title *</label>
                   <input
@@ -436,6 +444,20 @@ const PostDetails = () => {
                     <option value="Bakery">Bakery</option>
                     <option value="Packaged Food">Packaged Food</option>
                     <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Dietary Type *</label>
+                  <select
+                    name="dietaryType"
+                    value={editForm.dietaryType}
+                    onChange={handleEditChange}
+                    required
+                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="" disabled>Select type</option>
+                    <option value="Veg">Veg</option>
+                    <option value="Non-Veg">Non-Veg</option>
                   </select>
                 </div>
               </div>

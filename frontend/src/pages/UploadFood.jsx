@@ -24,6 +24,7 @@ const INITIAL_FORM_DATA = {
   title: '',
   description: '',
   foodType: 'Cooked Meal',
+  dietaryType: '',
   totalQuantity: '',
   quantityUnit: '',
   servingsPerUnit: '',
@@ -160,6 +161,7 @@ const UploadFood = () => {
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
       submitData.append('foodType', formData.foodType);
+      submitData.append('dietaryType', formData.dietaryType);
       submitData.append('totalQuantity', String(formData.totalQuantity));
       submitData.append('quantityUnit', formData.quantityUnit);
       submitData.append('servingsPerUnit', String(formData.servingsPerUnit));
@@ -242,7 +244,7 @@ const UploadFood = () => {
           </div>
 
           {/* Food Type and Quantity */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="label">Food Type *</label>
               <select
@@ -257,6 +259,21 @@ const UploadFood = () => {
                     {type}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Dietary Type *</label>
+              <select
+                name="dietaryType"
+                value={formData.dietaryType}
+                onChange={handleChange}
+                required
+                className="input"
+              >
+                <option value="" disabled>Select type</option>
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
               </select>
             </div>
 

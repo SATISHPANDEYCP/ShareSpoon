@@ -72,6 +72,27 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
   });
 };
 
+export const sendPasswordResetOtpEmail = async ({ to, name, otp }) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #166534;">Reset your Share Spoon password</h2>
+      <p>Hi ${name || 'there'},</p>
+      <p>Use this one-time code to reset your password:</p>
+      <div style="font-size: 28px; letter-spacing: 6px; font-weight: 700; color: #111827; margin: 16px 0;">
+        ${otp}
+      </div>
+      <p>This code expires in 10 minutes.</p>
+      <p>If you did not request a password reset, you can safely ignore this email.</p>
+    </div>
+  `;
+
+  await sendHtmlEmail({
+    to,
+    subject: 'Reset your Share Spoon password',
+    html,
+  });
+};
+
 export const sendPickupRatingReminderEmail = async ({
   to,
   requesterName,

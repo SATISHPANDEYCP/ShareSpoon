@@ -91,6 +91,36 @@ export const resendOtpValidation = [
   validate
 ];
 
+export const forgotPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Please provide a valid email')
+    .normalizeEmail(),
+
+  validate
+];
+
+export const resetPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Please provide a valid email')
+    .normalizeEmail(),
+
+  body('otp')
+    .trim()
+    .notEmpty().withMessage('OTP is required')
+    .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+    .isNumeric().withMessage('OTP must contain only numbers'),
+
+  body('newPassword')
+    .notEmpty().withMessage('New password is required')
+    .isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+
+  validate
+];
+
 /**
  * Food Post validation rules
  */
@@ -116,6 +146,10 @@ export const createPostValidation = [
     .notEmpty().withMessage('Food type is required')
     .isIn(['Cooked Meal', 'Raw Vegetables', 'Fruits', 'Grains', 'Dairy', 'Bakery', 'Packaged Food', 'Other'])
     .withMessage('Invalid food type'),
+
+  body('dietaryType')
+    .optional()
+    .isIn(['Veg', 'Non-Veg']).withMessage('Dietary type must be Veg or Non-Veg'),
   
   body('quantity')
     .trim()
@@ -253,6 +287,15 @@ export const paginationValidation = [
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+
+  query('q')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Search text cannot exceed 100 characters'),
+
+  query('dietaryType')
+    .optional()
+    .isIn(['Veg', 'Non-Veg']).withMessage('Dietary type must be Veg or Non-Veg'),
   
   validate
 ];
